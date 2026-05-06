@@ -8,11 +8,13 @@ interface Props {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   callDuration: number;
+  nickname: string;
+  remoteNickname: string | null;
   onNext: () => void;
   onStop: () => void;
 }
 
-export function VideoChat({ state, localStream, remoteStream, callDuration, onNext, onStop }: Props) {
+export function VideoChat({ state, localStream, remoteStream, callDuration, nickname, remoteNickname, onNext, onStop }: Props) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const [micOn, setMicOn] = useState(true);
@@ -77,10 +79,13 @@ export function VideoChat({ state, localStream, remoteStream, callDuration, onNe
           </div>
         )}
 
-        {/* Call duration */}
+        {/* Call duration + remote nickname */}
         {state === "connected" && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm text-xs text-zinc-300">
-            {min}:{sec.toString().padStart(2, "0")}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 rounded-full bg-black/50 backdrop-blur-sm">
+            {remoteNickname && (
+              <span className="text-sm text-white font-medium">{remoteNickname}</span>
+            )}
+            <span className="text-xs text-zinc-400">{min}:{sec.toString().padStart(2, "0")}</span>
           </div>
         )}
 
@@ -100,14 +105,17 @@ export function VideoChat({ state, localStream, remoteStream, callDuration, onNe
       </div>
 
       {/* Local video (PIP) */}
-      <div className="absolute bottom-20 right-4 w-36 h-28 rounded-xl overflow-hidden border border-zinc-700 shadow-xl bg-zinc-800">
+      <div className="absolute bottom-20 right-4 w-36 rounded-xl overflow-hidden border border-zinc-700 shadow-xl bg-zinc-800">
         <video
           ref={localVideoRef}
           autoPlay
           playsInline
           muted
-          className="w-full h-full object-cover scale-x-[-1]"
+          className="w-full h-28 object-cover scale-x-[-1]"
         />
+        <div className="px-2 py-1 bg-black/60 text-[10px] text-zinc-400 truncate text-center">
+          {nickname}
+        </div>
       </div>
 
       {/* Controls */}

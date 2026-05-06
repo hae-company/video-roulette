@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type Peer from "peerjs";
 import type { MediaConnection } from "peerjs";
+import { generateNickname } from "@/lib/nicknames";
 
 export type ConnectionState = "idle" | "connecting" | "waiting" | "matched" | "connected";
 
@@ -12,24 +13,23 @@ export function usePeer() {
   const localStreamRef = useRef<MediaStream | null>(null);
   const [state, setState] = useState<ConnectionState>("idle");
   const [peerId, setPeerId] = useState<string | null>(null);
+  const [nickname] = useState(() => generateNickname());
+  const [remoteNickname, setRemoteNickname] = useState<string | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   const callStartRef = useRef<number | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Initialize PeerJS + get local media
   const init = useCallback(async () => {
     setState("connecting");
 
-    // Get camera + mic
     const stream = await navigator.mediaDevices.getUserMedia({
       video: true,
       audio: true,
     });
     localStreamRef.current = stream;
 
-    // Create PeerJS instance
     const { default: PeerJS } = await import("peerjs");
     const peer = new PeerJS({
       config: {
@@ -48,7 +48,6 @@ export function usePeer() {
         resolve();
       });
 
-      // Handle incoming calls
       peer.on("call", (call) => {
         call.answer(localStreamRef.current!);
         callRef.current = call;
@@ -59,9 +58,7 @@ export function usePeer() {
           startDurationTimer();
         });
 
-        call.on("close", () => {
-          handleDisconnect();
-        });
+        call.on("close", handleDisconnect);
       });
 
       peer.on("error", (err) => {
@@ -81,35 +78,48 @@ export function usePeer() {
   }, []);
 
   const stopDurationTimer = useCallback(() => {
-    if (durationRef.current) {
-      clearInterval(durationRef.current);
-      durationRef.current = null;
-    }
+    if (durationRef.current) clearInterval(durationRef.current);
+    durationRef.current = null;
     callStartRef.current = null;
     setCallDuration(0);
   }, []);
 
-  // Start matching — poll the match API
+  const handleDisconnect = useCallback(() => {
+    if (callRef.current) {
+      callRef.current.close();
+      callRef.current = null;
+    }
+    setRemoteStream(null);
+    setRemoteNickname(null);
+    stopDurationTimer();
+    setState("idle");
+  }, [stopDurationTimer]);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+  }, []);
+
   const findMatch = useCallback(async () => {
     if (!peerRef.current || !peerId) return;
 
     setState("waiting");
+    setRemoteNickname(null);
 
-    // Poll every 2 seconds
     pollRef.current = setInterval(async () => {
       try {
         const res = await fetch("/api/match", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ peerId }),
+          body: JSON.stringify({ peerId, nickname }),
         });
         const data = await res.json();
 
         if (data.matched && data.remotePeerId) {
           stopPolling();
           setState("matched");
+          setRemoteNickname(data.remoteNickname || null);
 
-          // Call the matched peer
           const call = peerRef.current!.call(data.remotePeerId, localStreamRef.current!);
           callRef.current = call;
 
@@ -119,41 +129,19 @@ export function usePeer() {
             startDurationTimer();
           });
 
-          call.on("close", () => {
-            handleDisconnect();
-          });
+          call.on("close", handleDisconnect);
         }
       } catch (err) {
         console.error("Match poll error:", err);
       }
     }, 2000);
-  }, [peerId, startDurationTimer]);
+  }, [peerId, nickname, stopPolling, startDurationTimer, handleDisconnect]);
 
-  const stopPolling = useCallback(() => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }, []);
-
-  const handleDisconnect = useCallback(() => {
-    if (callRef.current) {
-      callRef.current.close();
-      callRef.current = null;
-    }
-    setRemoteStream(null);
-    stopDurationTimer();
-    setState("idle");
-  }, [stopDurationTimer]);
-
-  // Skip to next person
   const next = useCallback(async () => {
     handleDisconnect();
-    // Small delay then find new match
     setTimeout(() => findMatch(), 500);
   }, [handleDisconnect, findMatch]);
 
-  // Leave queue on cleanup
   const stop = useCallback(async () => {
     stopPolling();
     handleDisconnect();
@@ -165,7 +153,7 @@ export function usePeer() {
       }).catch(() => {});
     }
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
     }
     if (peerRef.current) {
@@ -175,22 +163,13 @@ export function usePeer() {
     setState("idle");
   }, [peerId, stopPolling, handleDisconnect]);
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      stop();
-    };
+    return () => { stop(); };
   }, [stop]);
 
   return {
-    state,
-    peerId,
-    localStream: localStreamRef.current,
-    remoteStream,
-    callDuration,
-    init,
-    findMatch,
-    next,
-    stop,
+    state, peerId, nickname, remoteNickname,
+    localStream: localStreamRef.current, remoteStream,
+    callDuration, init, findMatch, next, stop,
   };
 }

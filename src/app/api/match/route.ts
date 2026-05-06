@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
-import { joinQueue, leaveQueue } from "@/lib/redis";
+import { joinQueue, leaveQueue, getNickname } from "@/lib/redis";
 
 export async function POST(req: NextRequest) {
   try {
-    const { peerId, action } = await req.json();
+    const { peerId, nickname, action } = await req.json();
 
     if (!peerId) {
       return Response.json({ error: "peerId required" }, { status: 400 });
@@ -14,11 +14,19 @@ export async function POST(req: NextRequest) {
       return Response.json({ ok: true });
     }
 
-    // Default: join queue and try to match
-    const matched = await joinQueue(peerId);
+    if (action === "getNick") {
+      const nick = await getNickname(peerId);
+      return Response.json({ nickname: nick });
+    }
 
-    if (matched) {
-      return Response.json({ matched: true, remotePeerId: matched });
+    const result = await joinQueue(peerId, nickname || "???");
+
+    if (result) {
+      return Response.json({
+        matched: true,
+        remotePeerId: result.remotePeerId,
+        remoteNickname: result.remoteNickname,
+      });
     }
 
     return Response.json({ matched: false, waiting: true });

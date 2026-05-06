@@ -7,7 +7,7 @@ import { VideoChat } from "@/components/video-chat";
 import { Footer } from "@/components/footer";
 
 export default function Home() {
-  const { state, localStream, remoteStream, callDuration, init, findMatch, next, stop } = usePeer();
+  const { state, localStream, remoteStream, callDuration, nickname, remoteNickname, init, findMatch, next, stop } = usePeer();
   const [started, setStarted] = useState(false);
   const [initLoading, setInitLoading] = useState(false);
 
@@ -40,6 +40,8 @@ export default function Home() {
           localStream={localStream}
           remoteStream={remoteStream}
           callDuration={callDuration}
+          nickname={nickname}
+          remoteNickname={remoteNickname}
           onNext={next}
           onStop={handleStop}
         />
