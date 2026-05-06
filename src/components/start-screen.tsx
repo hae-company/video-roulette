@@ -6,9 +6,10 @@ interface Props {
   onStart: () => void;
   loading: boolean;
   nickname: string;
+  error: string | null;
 }
 
-export function StartScreen({ onStart, loading, nickname }: Props) {
+export function StartScreen({ onStart, loading, nickname, error }: Props) {
   return (
     <div className="h-full flex flex-col items-center justify-center bg-zinc-950 relative overflow-hidden">
       {/* Animated background gradient */}
@@ -59,7 +60,13 @@ export function StartScreen({ onStart, loading, nickname }: Props) {
           )}
         </button>
 
-        <p className="text-[10px] text-zinc-700 mt-6">
+        {error && (
+          <div className="mt-6 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs max-w-xs text-center">
+            {error}
+          </div>
+        )}
+
+        <p className="text-[10px] text-zinc-700 mt-4">
           카메라와 마이크 접근 권한이 필요합니다
         </p>
       </div>

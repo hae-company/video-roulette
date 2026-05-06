@@ -5,6 +5,7 @@ import type { ConnectionState } from "@/hooks/usePeer";
 
 interface Props {
   state: ConnectionState;
+  error: string | null;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   callDuration: number;
@@ -14,7 +15,7 @@ interface Props {
   onStop: () => void;
 }
 
-export function VideoChat({ state, localStream, remoteStream, callDuration, nickname, remoteNickname, onNext, onStop }: Props) {
+export function VideoChat({ state, error, localStream, remoteStream, callDuration, nickname, remoteNickname, onNext, onStop }: Props) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const [micOn, setMicOn] = useState(true);
@@ -89,6 +90,11 @@ export function VideoChat({ state, localStream, remoteStream, callDuration, nick
             )}
             {state === "idle" && (
               <p className="text-zinc-600 text-sm">대기 중</p>
+            )}
+            {error && (
+              <div className="mt-4 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs max-w-xs text-center">
+                {error}
+              </div>
             )}
           </div>
         )}

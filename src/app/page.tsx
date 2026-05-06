@@ -7,7 +7,7 @@ import { VideoChat } from "@/components/video-chat";
 import { Footer } from "@/components/footer";
 
 export default function Home() {
-  const { state, localStream, remoteStream, callDuration, nickname, remoteNickname, init, findMatch, next, stop } = usePeer();
+  const { state, error, localStream, remoteStream, callDuration, nickname, remoteNickname, init, findMatch, next, stop } = usePeer();
   const [started, setStarted] = useState(false);
   const [initLoading, setInitLoading] = useState(false);
 
@@ -16,11 +16,9 @@ export default function Home() {
     try {
       await init();
       setStarted(true);
-      // Auto-start matching
       setTimeout(() => findMatch(), 300);
-    } catch (err) {
-      console.error("Init error:", err);
-      alert("카메라/마이크 접근이 거부되었습니다.");
+    } catch {
+      // error is already set in usePeer
     }
     setInitLoading(false);
   }, [init, findMatch]);
@@ -33,10 +31,11 @@ export default function Home() {
   return (
     <div className="h-full">
       {!started ? (
-        <StartScreen onStart={handleStart} loading={initLoading} nickname={nickname} />
+        <StartScreen onStart={handleStart} loading={initLoading} nickname={nickname} error={error} />
       ) : (
         <VideoChat
           state={state}
+          error={error}
           localStream={localStream}
           remoteStream={remoteStream}
           callDuration={callDuration}
