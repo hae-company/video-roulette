@@ -33,7 +33,7 @@ export default function Home() {
   return (
     <div className="h-full">
       {!started ? (
-        <StartScreen onStart={handleStart} loading={initLoading} />
+        <StartScreen onStart={handleStart} loading={initLoading} nickname={nickname} />
       ) : (
         <VideoChat
           state={state}
