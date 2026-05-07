@@ -14,7 +14,12 @@ export function usePeer() {
   const [state, setState] = useState<ConnectionState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [peerId, setPeerId] = useState<string | null>(null);
-  const [nickname] = useState(() => generateNickname());
+  const [nickname, setNickname] = useState("...");
+
+  // Generate nickname on client only to avoid hydration mismatch
+  useEffect(() => {
+    setNickname(generateNickname());
+  }, []);
   const [remoteNickname, setRemoteNickname] = useState<string | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [callDuration, setCallDuration] = useState(0);
