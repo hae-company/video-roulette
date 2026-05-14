@@ -16,7 +16,9 @@ export default function Home() {
     try {
       await init();
       setStarted(true);
-      setTimeout(() => findMatch(), 300);
+      // init() resolves after peer.on("open") — peerRef.current.id is now set
+      // findMatch uses peerRef.current.id directly (not state), so safe to call immediately
+      findMatch();
     } catch {
       // error is already set in usePeer
     }
