@@ -162,16 +162,24 @@ export function usePeer() {
           setState("matched");
           setRemoteNickname(data.remoteNickname || null);
 
-          const call = peerRef.current!.call(data.remotePeerId, localStreamRef.current!);
-          callRef.current = call;
+          // Only the caller initiates the call
+          // The other side will receive it via peer.on("call")
+          if (data.caller) {
+            console.log("[Match] I am caller, calling", data.remotePeerId);
+            const call = peerRef.current!.call(data.remotePeerId, localStreamRef.current!);
+            callRef.current = call;
 
-          call.on("stream", (remote) => {
-            setRemoteStream(remote);
-            setState("connected");
-            startDurationTimer();
-          });
+            call.on("stream", (remote) => {
+              setRemoteStream(remote);
+              setState("connected");
+              startDurationTimer();
+            });
 
-          call.on("close", handleDisconnect);
+            call.on("close", handleDisconnect);
+          } else {
+            console.log("[Match] I am receiver, waiting for call from", data.remotePeerId);
+            // The incoming call will be handled by peer.on("call") in init()
+          }
         }
       } catch (err) {
         console.error("Match poll error:", err);

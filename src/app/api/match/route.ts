@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
         matched: true,
         remotePeerId: result.remotePeerId,
         remoteNickname: result.remoteNickname,
+        caller: result.caller,
       });
     }
 
